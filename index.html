@@ -2,283 +2,558 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f0f14">
 <title>Kalkulyator</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ============================================================
+   CSS VARIABLES — Dark & Light
+   ============================================================ */
 :root{
-  --bg:#0f0f14; --panel:#17171f; --panel-2:#1f1f2b;
-  --text:#eaeaf2; --muted:#8b8b9a; --line:#2a2a38;
-  --accent:#7c5cff; --accent-2:#5b8dff; --danger:#ff4d6d;
-  --msg-me:#7c5cff; --msg-other:#26263a;
+  --bg:#0b0b10;
+  --bg-2:#0f0f16;
+  --panel:#16161f;
+  --panel-2:#1e1e2a;
+  --panel-3:#26263400;
+  --text:#eef0f7;
+  --text-2:#a8aab8;
+  --muted:#7a7c8c;
+  --line:#252534;
+  --accent:#7c5cff;
+  --accent-2:#5b8dff;
+  --accent-grad:linear-gradient(135deg,#7c5cff 0%,#5b8dff 100%);
+  --danger:#ff4d6d;
+  --success:#22c55e;
+  --warning:#f59e0b;
+  --msg-me:linear-gradient(135deg,#7c5cff,#5b8dff);
+  --msg-other:#22222e;
+  --shadow:0 10px 40px rgba(0,0,0,.4);
+  --radius:16px;
+  --radius-sm:10px;
+  --radius-lg:24px;
 }
 [data-theme="light"]{
-  --bg:#f4f5fa; --panel:#ffffff; --panel-2:#eef0f7;
-  --text:#1a1a24; --muted:#666a80; --line:#dfe2ee;
-  --accent:#6a4bff; --accent-2:#2f6bff; --danger:#e62954;
-  --msg-me:#6a4bff; --msg-other:#e6e8f2;
+  --bg:#f5f6fb;
+  --bg-2:#eef0f7;
+  --panel:#ffffff;
+  --panel-2:#f0f2f9;
+  --text:#0e0e15;
+  --text-2:#4a4c5e;
+  --muted:#818394;
+  --line:#e2e5ef;
+  --accent:#6a4bff;
+  --accent-2:#2f6bff;
+  --accent-grad:linear-gradient(135deg,#6a4bff 0%,#2f6bff 100%);
+  --danger:#e62954;
+  --msg-me:linear-gradient(135deg,#6a4bff,#2f6bff);
+  --msg-other:#e8eaf2;
+  --shadow:0 10px 40px rgba(60,60,120,.12);
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",sans-serif;
   background:var(--bg);color:var(--text);
-  transition:background .25s,color .25s;
-  user-select:none;
+  transition:background .3s cubic-bezier(.4,0,.2,1),color .3s cubic-bezier(.4,0,.2,1);
+  user-select:none;-webkit-user-select:none;
 }
 .hidden{display:none!important}
-#app{height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+#app{
+  height:100vh;height:100dvh;display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+  background:var(--bg);
+}
+svg{display:block;flex-shrink:0}
 
-/* ============ KALKULYATOR ========= */
+/* ============================================================
+   KALKULYATOR
+   ============================================================ */
 #calcScreen{
   display:flex;flex-direction:column;height:100%;
-  max-width:480px;width:100%;margin:0 auto;padding:12px;
+  max-width:500px;width:100%;margin:0 auto;padding:16px;
+  padding-top:max(16px,env(safe-area-inset-top));
+  padding-bottom:max(16px,env(safe-area-inset-bottom));
 }
 .calc-display{
   flex:1;display:flex;flex-direction:column;justify-content:flex-end;
-  align-items:flex-end;padding:20px 10px;min-height:120px;overflow:hidden;
+  align-items:flex-end;padding:20px 12px;min-height:120px;overflow:hidden;
 }
-#calcExpr{font-size:16px;color:var(--muted);min-height:22px;word-break:break-all;text-align:right}
-#calcResult{font-size:52px;font-weight:300;word-break:break-all;text-align:right;line-height:1.1;margin-top:8px}
+#calcExpr{
+  font-size:16px;color:var(--muted);min-height:22px;
+  word-break:break-all;text-align:right;font-weight:400;
+  transition:color .2s;
+}
+#calcResult{
+  font-size:56px;font-weight:300;word-break:break-all;
+  text-align:right;line-height:1.05;margin-top:10px;
+  letter-spacing:-1.5px;transition:font-size .15s;
+}
+#calcResult.small{font-size:36px}
+#calcResult.tiny{font-size:26px}
+
 .calc-keys{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding-bottom:16px;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:12px;padding-bottom:8px;
 }
 .key{
   aspect-ratio:1/1;border:none;border-radius:50%;
-  font-size:24px;font-weight:500;cursor:pointer;
+  font-size:26px;font-weight:500;cursor:pointer;
   background:var(--panel-2);color:var(--text);
-  transition:transform .08s,background .2s;
+  transition:transform .1s,background .2s,box-shadow .2s;
   display:flex;align-items:center;justify-content:center;
+  font-family:inherit;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
 }
-.key:active{transform:scale(.92);background:var(--line)}
-.key.op{background:var(--accent);color:#fff}
+.key:active{transform:scale(.9);background:var(--line)}
+.key.op{
+  background:var(--accent);color:#fff;font-weight:600;
+}
 .key.op:active{background:var(--accent-2)}
-.key.fn{background:var(--panel);color:var(--accent);font-size:20px}
-.key.eq{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
-.key.zero{grid-column:span 2;aspect-ratio:auto;border-radius:40px}
+.key.fn{
+  background:var(--panel);color:var(--accent);font-size:22px;
+  font-weight:600;
+}
+.key.fn:active{background:var(--panel-2)}
+.key.eq{
+  background:var(--accent-grad);color:#fff;
+  box-shadow:0 4px 16px rgba(124,92,255,.35);
+  font-weight:700;
+}
+.key.eq:active{box-shadow:0 2px 8px rgba(124,92,255,.5);transform:scale(.9)}
+.key.zero{
+  grid-column:span 2;aspect-ratio:auto;
+  border-radius:50px;justify-content:flex-start;padding-left:32px;
+}
 
-/* ============ PAROL MODAL (kichik ekran) ============ */
-#pwdModal{
-  position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
-  display:flex;align-items:center;justify-content:center;z-index:50;
+/* ============================================================
+   MODAL (parol, qidiruv)
+   ============================================================ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:50;animation:fadeIn .2s ease-out;
+  padding:20px;
 }
-#pwdModal .box{
-  background:var(--panel);border:1px solid var(--line);border-radius:18px;
-  padding:28px 24px;width:88%;max-width:340px;text-align:center;
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+.modal-box{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius-lg);padding:28px 24px;
+  width:100%;max-width:360px;text-align:center;
+  box-shadow:var(--shadow);animation:slideUp .25s cubic-bezier(.2,1,.3,1);
 }
-#pwdModal h3{font-size:15px;color:var(--muted);font-weight:500;margin-bottom:14px}
-#pwdExample{font-size:30px;font-weight:600;letter-spacing:2px;color:var(--accent);margin-bottom:18px}
-#pwdInput{
-  width:100%;padding:14px;font-size:22px;text-align:center;letter-spacing:6px;
-  background:var(--panel-2);border:1px solid var(--line);border-radius:12px;
+.modal-title{
+  font-size:14px;color:var(--muted);font-weight:600;
+  margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.modal-example{
+  font-size:34px;font-weight:600;letter-spacing:3px;
+  color:var(--accent);margin-bottom:20px;
+  font-variant-numeric:tabular-nums;
+}
+.modal-input{
+  width:100%;padding:16px;font-size:24px;text-align:center;
+  letter-spacing:6px;background:var(--panel-2);
+  border:2px solid var(--line);border-radius:14px;
   color:var(--text);outline:none;font-weight:600;
+  transition:border-color .2s,background .2s;
+  font-family:inherit;
 }
-#pwdInput:focus{border-color:var(--accent)}
-.pwd-btns{display:flex;gap:10px;margin-top:16px}
-.pwd-btns button{
-  flex:1;padding:12px;border-radius:12px;border:none;font-size:15px;font-weight:600;
-  cursor:pointer;background:var(--panel-2);color:var(--text);
+.modal-input:focus{border-color:var(--accent);background:var(--bg-2)}
+.modal-btns{display:flex;gap:10px;margin-top:18px}
+.btn{
+  flex:1;padding:14px;border-radius:14px;border:none;
+  font-size:15px;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:transform .1s,opacity .2s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
 }
-.pwd-btns button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+.btn:active{transform:scale(.97)}
+.btn-secondary{background:var(--panel-2);color:var(--text)}
+.btn-primary{
+  background:var(--accent-grad);color:#fff;
+  box-shadow:0 4px 16px rgba(124,92,255,.3);
+}
+.btn-danger{background:var(--danger);color:#fff}
 
-/* ============ ASOSIY APP ============ */
-#mainApp{display:flex;flex-direction:column;height:100%}
+/* ============================================================
+   ASOSIY APP
+   ============================================================ */
+#mainApp{display:flex;flex-direction:column;height:100%;background:var(--bg-2)}
 
-/* Header */
+/* ---- TOP BAR ---- */
 .top-bar{
-  display:flex;align-items:center;gap:10px;padding:12px 14px;
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;
+  padding-top:max(14px,env(safe-area-inset-top));
   background:var(--panel);border-bottom:1px solid var(--line);
   position:sticky;top:0;z-index:10;
+  backdrop-filter:blur(20px);
 }
-.top-bar .avatar{
-  width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));
-  display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;
+.avatar{
+  width:40px;height:40px;border-radius:50%;
+  background:var(--accent-grad);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;color:#fff;font-size:16px;
   overflow:hidden;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(124,92,255,.25);
 }
-.top-bar .avatar img{width:100%;height:100%;object-fit:cover}
+.avatar img{width:100%;height:100%;object-fit:cover}
 .top-bar .who{flex:1;min-width:0}
-.top-bar .who .name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.top-bar .who .uname{font-size:12px;color:var(--muted)}
+.top-bar .who .name{
+  font-size:16px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-.2px;
+}
+.top-bar .who .uname{
+  font-size:12px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 .icon-btn{
-  width:38px;height:38px;border-radius:50%;border:none;background:var(--panel-2);
-  color:var(--text);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;
-  transition:background .2s;flex-shrink:0;
+  width:40px;height:40px;border-radius:50%;
+  border:none;background:var(--panel-2);color:var(--text);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s,transform .1s;flex-shrink:0;
 }
-.icon-btn:active{background:var(--line)}
+.icon-btn:hover{background:var(--line)}
+.icon-btn:active{transform:scale(.9);background:var(--line)}
 
-/* Content */
-.content{flex:1;overflow-y:auto;overflow-x:hidden}
-.view{padding:12px;min-height:100%}
-.section-title{font-size:13px;color:var(--muted);padding:6px 4px 10px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+/* ---- CONTENT ---- */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.content::-webkit-scrollbar{width:0;display:none}
+.view{padding:16px;min-height:100%}
+.section-title{
+  font-size:11px;color:var(--muted);
+  padding:8px 4px 14px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.5px;
+}
 
-/* Chat list */
+/* ---- CHAT LIST ---- */
 .chat-item{
-  display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;
-  cursor:pointer;transition:background .15s;
+  display:flex;align-items:center;gap:14px;padding:12px;
+  border-radius:var(--radius);cursor:pointer;
+  transition:background .15s,transform .1s;
+  margin-bottom:4px;
 }
-.chat-item:active{background:var(--panel-2)}
-.chat-item .avatar{
-  width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));
-  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;overflow:hidden;flex-shrink:0;
-}
-.chat-item .avatar img{width:100%;height:100%;object-fit:cover}
+.chat-item:active{background:var(--panel-2);transform:scale(.98)}
+.chat-item .avatar{width:52px;height:52px;font-size:20px}
 .chat-item .info{flex:1;min-width:0}
-.chat-item .info .name{font-size:15px;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-item .info .last{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item .info .name{
+  font-size:15px;font-weight:600;margin-bottom:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-.1px;
+}
+.chat-item .info .last{
+  font-size:13px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 
-/* Chat view */
-#chatView{display:flex;flex-direction:column;height:100%;background:var(--bg)}
+.empty-state{
+  text-align:center;padding:60px 20px;color:var(--muted);
+}
+.empty-state svg{margin:0 auto 16px;opacity:.4}
+.empty-state p{font-size:14px;line-height:1.5}
+
+/* ============================================================
+   CHAT VIEW
+   ============================================================ */
+#chatView{
+  position:fixed;inset:0;z-index:30;
+  display:flex;flex-direction:column;
+  background:var(--bg-2);animation:slideInRight .25s cubic-bezier(.2,1,.3,1);
+}
+@keyframes slideInRight{from{transform:translateX(100%)}to{transform:none}}
 .chat-header{
-  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;
+  padding-top:max(12px,env(safe-area-inset-top));
   background:var(--panel);border-bottom:1px solid var(--line);
+  flex-shrink:0;
 }
-.chat-header .avatar{
-  width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;
-  background:linear-gradient(135deg,var(--accent),var(--accent-2));
-  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;
-}
-.chat-header .avatar img{width:100%;height:100%;object-fit:cover}
+.chat-header .avatar{width:40px;height:40px;font-size:15px}
 .chat-header .who{flex:1;min-width:0}
-.chat-header .who .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
-.msg{
-  max-width:78%;padding:9px 13px;border-radius:16px;font-size:14.5px;line-height:1.4;
-  word-wrap:break-word;position:relative;animation:msgIn .18s ease-out;
+.chat-header .who .name{
+  font-size:15px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-.1px;
 }
-@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.msg.me{align-self:flex-end;background:var(--msg-me);color:#fff;border-bottom-right-radius:5px}
-.msg.other{align-self:flex-start;background:var(--msg-other);color:var(--text);border-bottom-left-radius:5px}
-.msg img{max-width:100%;border-radius:10px;display:block;margin-bottom:4px}
-.msg .meta{font-size:10.5px;opacity:.7;margin-top:3px;text-align:right}
-.msg .edited{font-style:italic;font-size:10px;opacity:.7}
+.chat-header .who .uname{
+  font-size:11px;color:var(--muted);margin-top:2px;
+}
+.messages{
+  flex:1;overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:6px;
+  -webkit-overflow-scrolling:touch;
+}
+.messages::-webkit-scrollbar{width:0;display:none}
+
+.msg{
+  max-width:78%;padding:10px 14px;border-radius:18px;
+  font-size:14.5px;line-height:1.45;word-wrap:break-word;
+  position:relative;animation:msgIn .2s ease-out;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+.msg.me{
+  align-self:flex-end;
+  background:var(--msg-me);color:#fff;
+  border-bottom-right-radius:6px;
+}
+.msg.other{
+  align-self:flex-start;
+  background:var(--msg-other);color:var(--text);
+  border-bottom-left-radius:6px;
+}
+.msg img{
+  max-width:100%;border-radius:12px;
+  display:block;margin-bottom:6px;
+}
+.msg .meta{
+  font-size:10.5px;opacity:.75;margin-top:4px;
+  text-align:right;display:flex;align-items:center;
+  justify-content:flex-end;gap:4px;
+}
+.msg .edited{font-style:italic;font-size:10px;opacity:.75}
 .msg-actions{
-  position:absolute;top:-8px;right:0;display:flex;gap:4px;opacity:0;transition:opacity .15s;
+  position:absolute;top:-10px;right:0;
+  display:flex;gap:4px;opacity:0;
+  transition:opacity .2s;
 }
 .msg.me:hover .msg-actions,.msg.me:active .msg-actions{opacity:1}
 .msg-actions button{
-  background:var(--panel);border:1px solid var(--line);border-radius:8px;
-  padding:3px 7px;font-size:11px;cursor:pointer;color:var(--text);
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:4px 8px;font-size:11px;
+  cursor:pointer;color:var(--text);
+  display:flex;align-items:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
+
 .input-bar{
-  display:flex;gap:8px;padding:10px 12px;background:var(--panel);
-  border-top:1px solid var(--line);padding-bottom:max(10px,env(safe-area-inset-bottom));
+  display:flex;gap:8px;padding:10px 12px;
+  padding-bottom:max(10px,env(safe-area-inset-bottom));
+  background:var(--panel);border-top:1px solid var(--line);
+  flex-shrink:0;
 }
 .input-bar input[type=text]{
-  flex:1;padding:11px 15px;border-radius:22px;border:1px solid var(--line);
-  background:var(--panel-2);color:var(--text);font-size:15px;outline:none;
+  flex:1;padding:12px 18px;border-radius:24px;
+  border:1px solid var(--line);background:var(--panel-2);
+  color:var(--text);font-size:15px;outline:none;
+  transition:border-color .2s,background .2s;
+  font-family:inherit;
 }
-.input-bar input[type=text]:focus{border-color:var(--accent)}
+.input-bar input[type=text]:focus{
+  border-color:var(--accent);background:var(--bg-2);
+}
 .input-bar .send{
-  width:44px;height:44px;border-radius:50%;border:none;flex-shrink:0;
-  background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;
-  font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  width:46px;height:46px;border-radius:50%;
+  border:none;flex-shrink:0;
+  background:var(--accent-grad);color:#fff;
+  cursor:pointer;display:flex;
+  align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(124,92,255,.3);
+  transition:transform .1s;
 }
+.input-bar .send:active{transform:scale(.9)}
 
-/* Gallery */
-.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.gallery-grid .gitem{
-  aspect-ratio:1/1;border-radius:10px;overflow:hidden;position:relative;background:var(--panel-2);
+/* ============================================================
+   GALLERY
+   ============================================================ */
+.gallery-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
 }
-.gallery-grid .gitem img{width:100%;height:100%;object-fit:cover}
+.gallery-grid .gitem{
+  aspect-ratio:1/1;border-radius:12px;overflow:hidden;
+  position:relative;background:var(--panel-2);
+  cursor:pointer;transition:transform .1s;
+}
+.gallery-grid .gitem:active{transform:scale(.96)}
+.gallery-grid .gitem img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
 .gallery-grid .gitem .del{
-  position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;
-  border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:12px;
+  position:absolute;top:6px;right:6px;
+  background:rgba(0,0,0,.65);color:#fff;border:none;
+  border-radius:50%;width:26px;height:26px;
+  cursor:pointer;display:flex;
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);
 }
 .add-photo{
-  aspect-ratio:1/1;border:2px dashed var(--line);border-radius:10px;
-  display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted);
-  cursor:pointer;background:transparent;
+  aspect-ratio:1/1;border:2px dashed var(--line);
+  border-radius:12px;display:flex;
+  align-items:center;justify-content:center;
+  color:var(--muted);cursor:pointer;
+  background:var(--panel);transition:all .2s;
 }
+.add-photo:active{background:var(--panel-2);transform:scale(.96)}
 
-/* Profile */
+/* ============================================================
+   PROFILE
+   ============================================================ */
 .profile-card{
-  background:var(--panel);border-radius:20px;padding:24px;text-align:center;
-  border:1px solid var(--line);margin-bottom:14px;
+  background:var(--panel);border-radius:var(--radius-lg);
+  padding:28px 20px;text-align:center;
+  border:1px solid var(--line);margin-bottom:16px;
+  box-shadow:0 4px 20px rgba(0,0,0,.05);
 }
 .profile-card .big-avatar{
-  width:100px;height:100px;border-radius:50%;margin:0 auto 14px;overflow:hidden;
-  background:linear-gradient(135deg,var(--accent),var(--accent-2));
-  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:36px;
+  width:110px;height:110px;border-radius:50%;
+  margin:0 auto 18px;overflow:hidden;
+  background:var(--accent-grad);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:42px;
   position:relative;cursor:pointer;
+  box-shadow:0 8px 24px rgba(124,92,255,.3);
+  transition:transform .15s;
 }
-.profile-card .big-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-card .big-avatar:active{transform:scale(.95)}
+.profile-card .big-avatar img{
+  width:100%;height:100%;object-fit:cover;
+}
 .profile-card .big-avatar .camera{
-  position:absolute;bottom:0;right:0;background:var(--accent);width:32px;height:32px;
-  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid var(--panel);
+  position:absolute;bottom:2px;right:2px;
+  background:var(--accent);width:34px;height:34px;
+  border-radius:50%;display:flex;
+  align-items:center;justify-content:center;
+  border:3px solid var(--panel);
 }
-.profile-card h2{font-size:20px;margin-bottom:4px}
+.profile-card h2{
+  font-size:22px;margin-bottom:4px;
+  letter-spacing:-.3px;font-weight:700;
+}
 .profile-card p{color:var(--muted);font-size:14px}
-.profile-card .uid{color:var(--muted);font-size:12px;margin-top:8px;font-family:monospace}
+.profile-card .uid{
+  color:var(--muted);font-size:12px;
+  margin-top:10px;font-family:ui-monospace,monospace;
+  background:var(--panel-2);display:inline-block;
+  padding:4px 12px;border-radius:20px;
+}
+
 .field{
-  background:var(--panel);border-radius:14px;padding:14px 16px;margin-bottom:10px;
-  border:1px solid var(--line);display:flex;align-items:center;gap:12px;
+  background:var(--panel);border-radius:14px;
+  padding:14px 16px;margin-bottom:10px;
+  border:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
 }
-.field label{flex:1;font-size:14px}
+.field label{
+  flex:1;font-size:14px;color:var(--text-2);
+  font-weight:500;
+}
 .field input{
-  flex:2;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
-  padding:9px 12px;color:var(--text);font-size:14px;outline:none;
+  flex:1.5;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:10px;
+  padding:10px 14px;color:var(--text);font-size:14px;
+  outline:none;transition:border-color .2s;
+  font-family:inherit;
 }
-.btn-primary{
-  width:100%;padding:14px;border-radius:14px;border:none;
-  background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;
-  font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;
-}
-.btn-primary:active{transform:scale(.98)}
+.field input:focus{border-color:var(--accent)}
 
-/* Search modal */
-#searchModal{
-  position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
-  z-index:60;display:flex;align-items:flex-start;justify-content:center;padding-top:80px;
-}
-#searchModal .box{
-  background:var(--panel);border:1px solid var(--line);border-radius:18px;
-  padding:20px;width:90%;max-width:400px;
-}
-#searchModal input{
-  width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);
-  background:var(--panel-2);color:var(--text);font-size:15px;outline:none;margin-bottom:12px;
-}
-#searchResult{padding:10px;background:var(--panel-2);border-radius:12px;display:none;cursor:pointer}
-
-/* Bottom nav */
+/* ============================================================
+   BOTTOM NAV
+   ============================================================ */
 .bottom-nav{
-  display:flex;background:var(--panel);border-top:1px solid var(--line);
+  display:flex;background:var(--panel);
+  border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom);
+  backdrop-filter:blur(20px);
+  flex-shrink:0;
 }
 .bottom-nav button{
-  flex:1;padding:12px 4px;background:none;border:none;color:var(--muted);
-  display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
-  font-size:10px;font-weight:500;transition:color .15s;
+  flex:1;padding:10px 4px 12px;
+  background:none;border:none;
+  color:var(--muted);cursor:pointer;
+  display:flex;flex-direction:column;
+  align-items:center;gap:4px;
+  font-size:10.5px;font-weight:600;
+  transition:color .2s;
+  font-family:inherit;
 }
-.bottom-nav button .ic{font-size:20px}
 .bottom-nav button.active{color:var(--accent)}
+.bottom-nav button svg{transition:transform .2s}
+.bottom-nav button.active svg{transform:scale(1.15)}
 
-/* Toast */
+/* ============================================================
+   SEARCH MODAL
+   ============================================================ */
+#searchModal .modal-box{
+  max-width:440px;text-align:left;
+  padding:20px;align-self:flex-start;margin-top:80px;
+}
+#searchModal .modal-input{
+  text-align:left;font-size:16px;letter-spacing:0;
+  padding:14px 16px;font-weight:400;
+}
+.search-result{
+  padding:12px;background:var(--panel-2);
+  border-radius:12px;display:none;cursor:pointer;
+  align-items:center;gap:12px;
+  border:1px solid var(--line);
+  transition:background .15s;
+}
+.search-result:active{background:var(--line)}
+.search-result.show{display:flex}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
 #toast{
-  position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);
-  background:var(--panel);color:var(--text);padding:12px 22px;border-radius:12px;
-  border:1px solid var(--line);font-size:14px;z-index:100;transition:transform .3s;
-  box-shadow:0 8px 30px rgba(0,0,0,.3);
+  position:fixed;top:20px;left:50%;
+  transform:translateX(-50%) translateY(-120px);
+  background:var(--panel);color:var(--text);
+  padding:14px 22px;border-radius:14px;
+  border:1px solid var(--line);font-size:14px;
+  font-weight:500;z-index:1000;
+  transition:transform .35s cubic-bezier(.2,1,.3,1);
+  box-shadow:var(--shadow);
+  max-width:88%;text-align:center;
+  pointer-events:none;
 }
 #toast.show{transform:translateX(-50%) translateY(0)}
+#toast.error{border-color:var(--danger)}
+#toast.success{border-color:var(--success)}
 
-/* Blocked screen */
+/* ============================================================
+   BLOCKED SCREEN
+   ============================================================ */
 #blockedScreen{
-  position:fixed;inset:0;background:var(--bg);z-index:200;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;
+  position:fixed;inset:0;background:var(--bg);
+  z-index:200;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:30px;text-align:center;
 }
-#blockedScreen .em{font-size:64px;margin-bottom:20px}
-#blockedScreen h2{margin-bottom:10px}
-#blockedScreen p{color:var(--muted);font-size:14px}
+#blockedScreen svg{margin-bottom:24px;color:var(--warning);opacity:.9}
+#blockedScreen h2{margin-bottom:10px;font-size:20px;font-weight:700}
+#blockedScreen p{color:var(--muted);font-size:14px;line-height:1.6;max-width:280px}
 
-/* File input yashirin */
-#fileInput{display:none}
+/* ============================================================
+   PHOTO VIEWER
+   ============================================================ */
+#photoViewer{
+  position:fixed;inset:0;background:rgba(0,0,0,.95);
+  z-index:150;display:flex;align-items:center;
+  justify-content:center;padding:20px;
+  animation:fadeIn .2s;
+}
+#photoViewer img{
+  max-width:100%;max-height:100%;
+  object-fit:contain;border-radius:8px;
+}
+#photoViewer .close{
+  position:absolute;top:20px;right:20px;
+  background:rgba(255,255,255,.15);
+  color:#fff;border:none;width:44px;height:44px;
+  border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);
+}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- ============ KALKULYATOR EKRANI ============ -->
+  <!-- ============ KALKULYATOR ============ -->
   <div id="calcScreen">
     <div class="calc-display">
       <div id="calcExpr"></div>
@@ -286,7 +561,9 @@ body{
     </div>
     <div class="calc-keys">
       <button class="key fn" data-act="clear">AC</button>
-      <button class="key fn" data-act="back">⌫</button>
+      <button class="key fn" data-act="back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+      </button>
       <button class="key fn" data-act="percent">%</button>
       <button class="key op" data-op="/">÷</button>
 
@@ -312,14 +589,17 @@ body{
   </div>
 
   <!-- ============ PAROL MODAL ============ -->
-  <div id="pwdModal" class="hidden">
-    <div class="box">
-      <h3>🛡 Xavfsizlik tekshiruvi</h3>
-      <div id="pwdExample">14 + 12 =</div>
-      <input id="pwdInput" type="text" inputmode="numeric" placeholder="Javob" autocomplete="off">
-      <div class="pwd-btns">
-        <button onclick="closePwdModal()">Bekor</button>
-        <button class="primary" onclick="submitPwd()">Kirish</button>
+  <div id="pwdModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Xavfsizlik tekshiruvi
+      </div>
+      <div class="modal-example" id="pwdExample">14 + 12 =</div>
+      <input class="modal-input" id="pwdInput" type="text" inputmode="numeric" placeholder="• • • • •" autocomplete="off">
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closePwdModal()">Bekor</button>
+        <button class="btn btn-primary" onclick="submitPwd()">Kirish</button>
       </div>
     </div>
   </div>
@@ -333,21 +613,25 @@ body{
         <div class="name" id="myName">...</div>
         <div class="uname" id="myUsername">@...</div>
       </div>
-      <button class="icon-btn" id="btnTheme">🌙</button>
-      <button class="icon-btn" id="btnSearch">🔍</button>
+      <button class="icon-btn" id="btnTheme" title="Tema">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" id="btnSearch" title="Qidiruv">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
     </div>
 
     <!-- Content -->
     <div class="content" id="content">
       <!-- CHATLAR -->
       <div class="view" id="view-chats">
-        <div class="section-title">💬 Suhbatlar</div>
+        <div class="section-title">Suhbatlar</div>
         <div id="chatList"></div>
       </div>
 
       <!-- RASMLAR -->
       <div class="view hidden" id="view-gallery">
-        <div class="section-title">🖼 Mening rasmlarim</div>
+        <div class="section-title">Rasmlarim</div>
         <div class="gallery-grid" id="galleryGrid"></div>
         <input type="file" id="galleryInput" accept="image/*" style="display:none">
       </div>
@@ -357,7 +641,9 @@ body{
         <div class="profile-card">
           <div class="big-avatar" id="profAvatar" onclick="document.getElementById('profPhotoInput').click()">
             <span id="profAvatarText">?</span>
-            <div class="camera">📷</div>
+            <div class="camera">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
           </div>
           <h2 id="profName">...</h2>
           <p id="profUsername">@...</p>
@@ -369,119 +655,171 @@ body{
         </div>
         <div class="field">
           <label>Eski parol</label>
-          <input type="text" id="oldPwd" placeholder="•••••" maxlength="5">
+          <input type="text" id="oldPwd" placeholder="•••••" maxlength="5" inputmode="numeric">
         </div>
         <div class="field">
           <label>Yangi parol</label>
-          <input type="text" id="newPwd" placeholder="5 xonali" maxlength="5">
+          <input type="text" id="newPwd" placeholder="5 xonali" maxlength="5" inputmode="numeric">
         </div>
-        <button class="btn-primary" onclick="saveProfile()">💾 Saqlash</button>
-        <button class="btn-primary" style="background:var(--danger);margin-top:10px" onclick="logout()">🚪 Chiqish</button>
+        <button class="btn btn-primary" onclick="saveProfile()" style="width:100%;margin-top:8px">Saqlash</button>
+        <button class="btn btn-danger" onclick="logout()" style="width:100%;margin-top:10px">Chiqish</button>
         <input type="file" id="profPhotoInput" accept="image/*" style="display:none">
       </div>
     </div>
 
     <!-- Bottom nav -->
     <div class="bottom-nav">
-      <button data-view="chats" class="active"><span class="ic">💬</span>Asosiy</button>
-      <button data-view="gallery"><span class="ic">🖼</span>Rasmlar</button>
-      <button data-view="profile"><span class="ic">👤</span>Profil</button>
+      <button data-view="chats" class="active">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Asosiy
+      </button>
+      <button data-view="gallery">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Rasmlar
+      </button>
+      <button data-view="profile">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profil
+      </button>
     </div>
   </div>
 
-  <!-- ============ CHAT KO'RINISHI ============ -->
-  <div id="chatView" class="hidden" style="position:absolute;inset:0;z-index:30">
+  <!-- ============ CHAT VIEW ============ -->
+  <div id="chatView" class="hidden">
     <div class="chat-header">
-      <button class="icon-btn" onclick="closeChat()">←</button>
+      <button class="icon-btn" onclick="closeChat()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
       <div class="avatar" id="chatAvatar">?</div>
       <div class="who">
         <div class="name" id="chatName">...</div>
-        <div class="uname" id="chatUsername" style="font-size:11px;color:var(--muted)"></div>
+        <div class="uname" id="chatUsername"></div>
       </div>
-      <button class="icon-btn" onclick="blockUser()" title="Bloklash">🚫</button>
+      <button class="icon-btn" onclick="blockUser()" title="Bloklash">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      </button>
     </div>
     <div class="messages" id="messages"></div>
     <div class="input-bar">
-      <button class="icon-btn" onclick="document.getElementById('chatFileInput').click()">📎</button>
+      <button class="icon-btn" onclick="document.getElementById('chatFileInput').click()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
       <input type="text" id="msgInput" placeholder="Xabar yozing..." autocomplete="off">
-      <button class="send" onclick="sendMessage()">➤</button>
+      <button class="send" onclick="sendMessage()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
     </div>
     <input type="file" id="chatFileInput" accept="image/*" style="display:none">
   </div>
 
   <!-- ============ QIDIRUV ============ -->
-  <div id="searchModal" class="hidden">
-    <div class="box">
-      <input type="text" id="searchInput" placeholder="@username kiriting..." autocomplete="off">
-      <div id="searchResult"></div>
-      <button class="btn-primary" style="background:var(--panel-2);color:var(--text);margin-top:12px" onclick="closeSearch()">Yopish</button>
+  <div id="searchModal" class="modal-overlay hidden" onclick="if(event.target===this)closeSearch()">
+    <div class="modal-box">
+      <div class="modal-title" style="justify-content:flex-start">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Foydalanuvchi qidirish
+      </div>
+      <input class="modal-input" id="searchInput" placeholder="@username..." autocomplete="off">
+      <div class="search-result" id="searchResult"></div>
     </div>
   </div>
 
   <!-- ============ BLOKLANGAN ============ -->
   <div id="blockedScreen" class="hidden">
-    <div class="em">🔧</div>
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
     <h2>Hozir texnik muammolar</h2>
     <p>Iltimos, keyinroq qayta urinib ko'ring.</p>
+  </div>
+
+  <!-- ============ PHOTO VIEWER ============ -->
+  <div id="photoViewer" class="hidden" onclick="this.classList.add('hidden')">
+    <button class="close" onclick="document.getElementById('photoViewer').classList.add('hidden')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <img id="photoViewerImg" src="" alt="">
   </div>
 
   <div id="toast"></div>
 </div>
 
 <script>
-// ============ GLOBAL ============
-const API = '';  // bir xil domenda
-let tg = window.Telegram?.WebApp;
+/* ============================================================
+   GLOBAL
+   ============================================================ */
+const API = '';
+const tg = window.Telegram?.WebApp;
 let currentUser = null;
 let currentChat = null;
 let ws = null;
 let calcExpr = '';
-let pwdModalData = null;
 let lightTheme = false;
 let activeView = 'chats';
+let tapCount = 0, tapTimer = null;
 
-// ============ TOAST ============
-function toast(msg){
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg, type='info'){
   const t = document.getElementById('toast');
   t.textContent = msg;
+  t.className = type;
   t.classList.add('show');
   clearTimeout(t._t);
-  t._t = setTimeout(()=>t.classList.remove('show'), 2200);
+  t._t = setTimeout(()=>{
+    t.classList.remove('show');
+    t.className = '';
+  }, 2400);
 }
 
-// ============ TEMA ============
+/* ============================================================
+   THEME
+   ============================================================ */
 function applyTheme(){
   document.documentElement.setAttribute('data-theme', lightTheme?'light':'dark');
-  document.getElementById('btnTheme').textContent = lightTheme?'☀️':'🌙';
+  const btn = document.getElementById('btnTheme');
+  btn.innerHTML = lightTheme
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
   localStorage.setItem('theme', lightTheme?'light':'dark');
 }
-document.getElementById('btnTheme').onclick = ()=>{
-  lightTheme = !lightTheme; applyTheme();
-};
-if(localStorage.getItem('theme')==='light'){ lightTheme = true; applyTheme(); }
-else applyTheme();
+document.getElementById('btnTheme').onclick = ()=>{ lightTheme=!lightTheme; applyTheme(); };
+lightTheme = localStorage.getItem('theme') === 'light';
+applyTheme();
 
-// ============ KALKULYATOR ============
+/* ============================================================
+   KALKULYATOR
+   ============================================================ */
 const exprEl = document.getElementById('calcExpr');
 const resEl  = document.getElementById('calcResult');
 
 function updateCalc(){
-  exprEl.textContent = calcExpr;
-  // Live natija
-  if(calcExpr.trim()===''){ resEl.textContent = '0'; return; }
+  exprEl.textContent = calcExpr || '';
+  resEl.classList.remove('small','tiny');
+  if(!calcExpr.trim()){
+    resEl.textContent = '0';
+    return;
+  }
   try{
     const safe = calcExpr.replace(/[^0-9+\-*/.()%]/g,'');
-    if(!safe) { resEl.textContent = calcExpr; return; }
-    let evalStr = safe.replace(/%/g,'/100');
+    if(!safe){ resEl.textContent = calcExpr; return; }
+    const evalStr = safe.replace(/%/g,'/100');
     const val = Function('"use strict";return ('+evalStr+')')();
-    if(val !== undefined && !isNaN(val)) resEl.textContent = String(Number(val.toFixed(10)));
-    else resEl.textContent = calcExpr;
+    if(val !== undefined && !isNaN(val) && isFinite(val)){
+      const s = String(Number(val.toFixed(10)));
+      resEl.textContent = s;
+      if(s.length > 10) resEl.classList.add('small');
+      if(s.length > 14) resEl.classList.add('tiny');
+    } else {
+      resEl.textContent = calcExpr;
+    }
   }catch(e){ resEl.textContent = calcExpr; }
 }
 
 document.querySelectorAll('.key').forEach(btn=>{
   btn.onclick = ()=>{
-    const num = btn.dataset.num, op = btn.dataset.op, act = btn.dataset.act;
+    const num = btn.dataset.num;
+    const op = btn.dataset.op;
+    const act = btn.dataset.act;
     if(num !== undefined){
       if(calcExpr === '0' && num !== '.') calcExpr = num;
       else calcExpr += num;
@@ -496,75 +834,65 @@ document.querySelectorAll('.key').forEach(btn=>{
 });
 
 function onEquals(){
-  // Parol kiritilgan bo'lishi mumkin: "26.11100" yoki oddiy natija
-  // Foydalanuvchi teng bosganida calcExpr ni tekshiramiz
   const text = (calcExpr || '').trim();
-  if(!text){ return; }
+  if(!text) return;
 
-  // 1) "javob.parol" formatida bo'lsa
+  // Format: "javob.parol" (masalan: 26.11100)
   if(text.includes('.')){
     const parts = text.split('.');
     if(parts.length === 2){
       const pwd = parts[1].trim();
-      if(pwd.length === 5 && /^\d{5}$/.test(pwd)){
-        // Parolni tekshirish
+      if(/^\d{5}$/.test(pwd)){
         tryLogin(pwd);
         return;
       }
     }
   }
 
-  // 2) Oddiy hisoblash
+  // Oddiy hisoblash
   try{
-    let evalStr = text.replace(/%/g,'/100').replace(/[^0-9+\-*/.()\/]/g,'');
+    const evalStr = text.replace(/%/g,'/100').replace(/[^0-9+\-*/.()\/]/g,'');
     const val = Function('"use strict";return ('+evalStr+')')();
     calcExpr = String(Number(val.toFixed(10)));
     updateCalc();
   }catch(e){
-    toast('Xato ifoda');
+    toast('Xato ifoda', 'error');
   }
 }
 
-// ============ PAROL MODAL ============
+/* ============================================================
+   PAROL MODAL
+   ============================================================ */
 function openPwdModal(){
-  // Tasodifiy misol
   const a = 10 + Math.floor(Math.random()*20);
   const b = 5 + Math.floor(Math.random()*25);
-  pwdModalData = { a, b, result: a+b };
   document.getElementById('pwdExample').textContent = `${a} + ${b} =`;
   document.getElementById('pwdInput').value = '';
   document.getElementById('pwdModal').classList.remove('hidden');
-  setTimeout(()=>document.getElementById('pwdInput').focus(), 150);
+  setTimeout(()=>document.getElementById('pwdInput').focus(), 200);
 }
-
 function closePwdModal(){
   document.getElementById('pwdModal').classList.add('hidden');
 }
-
 async function submitPwd(){
   const input = document.getElementById('pwdInput').value.trim();
-  if(!input){ toast('Javob kiriting'); return; }
-  // Format: "26.11100" yoki "26" yoki "11100"
+  if(!input){ toast('Javob kiriting', 'error'); return; }
   let pwd = '';
   if(input.includes('.')){
-    const p = input.split('.');
-    pwd = p[1];
-    // javobni tekshirish ixtiyoriy
+    pwd = input.split('.')[1].trim();
+  } else if(/^\d{5}$/.test(input)){
+    pwd = input;
   } else {
-    // faqat parol bo'lishi mumkin
-    if(input.length === 5){ pwd = input; }
-    else {
-      // faqat javob kiritilgan - chatlar ochilmaydi
-      closePwdModal();
-      // Kalkulyatorga qaytamiz
-      return;
-    }
+    closePwdModal();
+    return;
   }
-  if(pwd.length !== 5){ toast('Format: javob.parol'); return; }
+  if(!/^\d{5}$/.test(pwd)){ toast('Format: javob.parol', 'error'); return; }
   await tryLogin(pwd);
 }
 
-// ============ LOGIN ============
+/* ============================================================
+   LOGIN
+   ============================================================ */
 async function tryLogin(password){
   try{
     const r = await fetch(`${API}/api/login`, {
@@ -574,7 +902,7 @@ async function tryLogin(password){
     });
     if(!r.ok){
       const err = await r.json().catch(()=>({detail:'Xato'}));
-      toast(err.detail || 'Parol xato');
+      toast(err.detail || 'Parol xato', 'error');
       closePwdModal();
       return;
     }
@@ -584,19 +912,21 @@ async function tryLogin(password){
     localStorage.setItem('pwd', password);
     closePwdModal();
     showMainApp();
+    toast('Xush kelibsiz!', 'success');
   }catch(e){
-    toast('Server xatosi');
+    toast('Server xatosi', 'error');
   }
 }
 
-// ============ APP KO'RSATISH ============
+/* ============================================================
+   APP KO'RSATISH
+   ============================================================ */
 function showMainApp(){
   document.getElementById('calcScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
   fillMyInfo();
-  loadChats();
-  loadGallery();
   fillProfile();
+  loadChats();
   connectWS();
 }
 
@@ -606,7 +936,7 @@ function fillMyInfo(){
   document.getElementById('myUsername').textContent = currentUser.username ? '@'+currentUser.username : '';
   const av = document.getElementById('myAvatar');
   if(currentUser.photo){
-    av.innerHTML = `<img src="${currentUser.photo}">`;
+    av.innerHTML = `<img src="${currentUser.photo}" alt="">`;
   } else {
     av.textContent = (currentUser.full_name||'?').charAt(0).toUpperCase();
   }
@@ -616,7 +946,7 @@ function fillProfile(){
   if(!currentUser) return;
   document.getElementById('profName').textContent = currentUser.full_name || '...';
   document.getElementById('profUsername').textContent = currentUser.username ? '@'+currentUser.username : '';
-  document.getElementById('profId').textContent = 'ID: '+currentUser.user_id;
+  document.getElementById('profId').textContent = 'ID: ' + currentUser.user_id;
   document.getElementById('editName').value = currentUser.full_name || '';
   const pav = document.getElementById('profAvatar');
   const ptxt = document.getElementById('profAvatarText');
@@ -630,7 +960,9 @@ function fillProfile(){
   }
 }
 
-// ============ NAVIGATSIYA ============
+/* ============================================================
+   NAVIGATSIYA
+   ============================================================ */
 document.querySelectorAll('.bottom-nav button').forEach(b=>{
   b.onclick = ()=>{
     const v = b.dataset.view;
@@ -639,13 +971,16 @@ document.querySelectorAll('.bottom-nav button').forEach(b=>{
     ['chats','gallery','profile'].forEach(name=>{
       document.getElementById('view-'+name).classList.toggle('hidden', name!==v);
     });
-    if(v==='gallery') loadGallery();
-    if(v==='profile') fillProfile();
+    if(v === 'gallery') loadGallery();
+    if(v === 'profile') fillProfile();
   };
 });
 
-// ============ CHATLAR ============
+/* ============================================================
+   CHATLAR
+   ============================================================ */
 async function loadChats(){
+  if(!currentUser) return;
   try{
     const r = await fetch(`${API}/api/chats/${currentUser.user_id}`);
     if(r.status === 423){ showBlocked(); return; }
@@ -653,35 +988,46 @@ async function loadChats(){
     const chats = await r.json();
     const list = document.getElementById('chatList');
     if(chats.length === 0){
-      list.innerHTML = `<div style="text-align:center;color:var(--muted);padding:40px 20px">
-        <div style="font-size:48px;margin-bottom:10px">💬</div>
-        Hali chatlar yo'q. Qidiruv orqali foydalanuvchi toping.
-      </div>`;
+      list.innerHTML = `
+        <div class="empty-state">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <p>Hali chatlar yo'q<br>Qidiruv orqali foydalanuvchi toping</p>
+        </div>`;
       return;
     }
-    list.innerHTML = chats.map(c=>`
-      <div class="chat-item" onclick='openChat(${JSON.stringify(c).replace(/'/g,"&#39;")})'>
-        <div class="avatar">${c.photo ? `<img src="${c.photo}">` : (c.full_name||'?').charAt(0).toUpperCase()}</div>
+    list.innerHTML = chats.map(c => `
+      <div class="chat-item" data-chat='${JSON.stringify(c).replace(/'/g,"&#39;")}'>
+        <div class="avatar">${c.photo ? `<img src="${c.photo}" alt="">` : (c.full_name||'?').charAt(0).toUpperCase()}</div>
         <div class="info">
           <div class="name">${escapeHtml(c.full_name)}</div>
           <div class="last">${escapeHtml(c.last_message||'')}</div>
         </div>
       </div>
     `).join('');
+    list.querySelectorAll('.chat-item').forEach(el=>{
+      el.onclick = ()=>{
+        try{ openChat(JSON.parse(el.dataset.chat.replace(/&#39;/g,"'"))); }
+        catch(e){ console.error(e); }
+      };
+    });
   }catch(e){ console.error(e); }
 }
 
-function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
 
-// ============ CHAT OCHISH ============
+/* ============================================================
+   CHAT OCHISH
+   ============================================================ */
 async function openChat(peer){
   currentChat = peer;
   document.getElementById('chatView').classList.remove('hidden');
   document.getElementById('chatName').textContent = peer.full_name;
   document.getElementById('chatUsername').textContent = peer.username ? '@'+peer.username : '';
   const av = document.getElementById('chatAvatar');
-  if(peer.photo){ av.innerHTML = `<img src="${peer.photo}">`; }
-  else { av.textContent = (peer.full_name||'?').charAt(0).toUpperCase(); }
+  if(peer.photo) av.innerHTML = `<img src="${peer.photo}" alt="">`;
+  else av.textContent = (peer.full_name||'?').charAt(0).toUpperCase();
   await loadMessages(peer.user_id);
 }
 
@@ -692,28 +1038,39 @@ function closeChat(){
 }
 
 async function loadMessages(peerId){
-  const r = await fetch(`${API}/api/messages/${currentUser.user_id}/${peerId}`);
-  if(!r.ok) return;
-  const msgs = await r.json();
-  renderMessages(msgs);
+  if(!currentUser) return;
+  try{
+    const r = await fetch(`${API}/api/messages/${currentUser.user_id}/${peerId}`);
+    if(!r.ok) return;
+    const msgs = await r.json();
+    renderMessages(msgs);
+  }catch(e){ console.error(e); }
 }
 
 function renderMessages(msgs){
   const box = document.getElementById('messages');
+  if(msgs.length === 0){
+    box.innerHTML = `<div class="empty-state" style="padding:40px 20px">
+      <p>Xabarlar yo'q<br>Birinchi bo'lib yozing!</p>
+    </div>`;
+    return;
+  }
   box.innerHTML = msgs.map(m=>{
     const mine = m.from_id === currentUser.user_id;
     let content = '';
     if(m.type === 'image' && m.file_data){
-      content = `<img src="${m.file_data}">` + (m.text ? `<div>${escapeHtml(m.text)}</div>` : '');
+      content = `<img src="${m.file_data}" alt="" onclick="openPhoto('${m.file_data}')">`;
+      if(m.text) content += `<div>${escapeHtml(m.text)}</div>`;
     } else {
       content = escapeHtml(m.text || '');
     }
     const time = new Date(m.created_at).toLocaleTimeString('uz',{hour:'2-digit',minute:'2-digit'});
-    const editMark = m.edited ? ' <span class="edited">(tahrirlangan)</span>' : '';
-    const actions = mine ? `<div class="msg-actions">
-      <button onclick="editMsg(${m.id}, '${escapeAttr(m.text||'')}')">✏️</button>
-      <button onclick="deleteMsg(${m.id})">🗑</button>
-    </div>` : '';
+    const editMark = m.edited ? ' <span class="edited">tahrirlangan</span>' : '';
+    const actions = mine ? `
+      <div class="msg-actions">
+        <button onclick="editMsg(${m.id})" title="Tahrirlash">✎</button>
+        <button onclick="deleteMsg(${m.id})" title="O'chirish">✕</button>
+      </div>` : '';
     return `<div class="msg ${mine?'me':'other'}">
       ${actions}
       ${content}
@@ -723,24 +1080,30 @@ function renderMessages(msgs){
   box.scrollTop = box.scrollHeight;
 }
 
-function escapeAttr(s){ return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
-
-// ============ XABAR YUBORISH ============
+/* ============================================================
+   XABAR YUBORISH
+   ============================================================ */
 async function sendMessage(){
   const input = document.getElementById('msgInput');
   const text = input.value.trim();
   if(!text || !currentChat) return;
   input.value = '';
-  // WebSocket orqali
+
   if(ws && ws.readyState === WebSocket.OPEN){
     ws.send(JSON.stringify({to: currentChat.user_id, text, type:'text'}));
   } else {
-    await fetch(`${API}/api/messages`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({from_id: currentUser.user_id, to_id: currentChat.user_id, text, type:'text'})
-    });
-    await loadMessages(currentChat.user_id);
+    try{
+      await fetch(`${API}/api/messages`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          from_id: currentUser.user_id,
+          to_id: currentChat.user_id,
+          text, type:'text'
+        })
+      });
+      await loadMessages(currentChat.user_id);
+    }catch(e){ toast('Xabar yuborilmadi', 'error'); }
   }
 }
 
@@ -748,168 +1111,244 @@ document.getElementById('msgInput').addEventListener('keypress', e=>{
   if(e.key === 'Enter'){ e.preventDefault(); sendMessage(); }
 });
 
-// ============ XABARNI TAHRIRLASH / O'CHIRISH ============
-async function editMsg(id, oldText){
-  const nt = prompt('Yangi matn:', oldText);
-  if(nt === null || nt.trim()==='') return;
-  const fd = new FormData();
-  fd.append('text', nt);
-  fd.append('user_id', currentUser.user_id);
-  await fetch(`${API}/api/messages/${id}`,{method:'PUT',body:fd});
-  await loadMessages(currentChat.user_id);
+/* ============================================================
+   XABARNI TAHRIRLASH / O'CHIRISH
+   ============================================================ */
+async function editMsg(id){
+  const nt = prompt('Yangi matn:');
+  if(nt === null || nt.trim() === '') return;
+  try{
+    const r = await fetch(`${API}/api/messages/${id}`, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text: nt, user_id: currentUser.user_id})
+    });
+    if(r.ok){
+      toast('Tahrirlandi', 'success');
+      await loadMessages(currentChat.user_id);
+    }
+  }catch(e){ toast('Xato', 'error'); }
 }
 
 async function deleteMsg(id){
   if(!confirm("O'chirishni tasdiqlaysizmi?")) return;
-  await fetch(`${API}/api/messages/${id}?user_id=${currentUser.user_id}`,{method:'DELETE'});
-  await loadMessages(currentChat.user_id);
+  try{
+    const r = await fetch(`${API}/api/messages/${id}?user_id=${currentUser.user_id}`,{method:'DELETE'});
+    if(r.ok){
+      toast("O'chirildi", 'success');
+      await loadMessages(currentChat.user_id);
+    }
+  }catch(e){ toast('Xato', 'error'); }
 }
 
-// ============ RASM YUBORISH ============
+/* ============================================================
+   RASM YUBORISH
+   ============================================================ */
 document.getElementById('chatFileInput').onchange = async e=>{
   const file = e.target.files[0];
   if(!file || !currentChat) return;
-  const fd = new FormData();
-  fd.append('file', file);
-  const r = await fetch(`${API}/api/upload`,{method:'POST',body:fd});
-  const {url} = await r.json();
-  if(ws && ws.readyState === WebSocket.OPEN){
-    ws.send(JSON.stringify({to: currentChat.user_id, text:'', type:'image', file_data:url}));
-  } else {
-    await fetch(`${API}/api/messages`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({from_id: currentUser.user_id, to_id: currentChat.user_id, text:'', type:'image', file_data:url})
-    });
-    await loadMessages(currentChat.user_id);
-  }
+  try{
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch(`${API}/api/upload`,{method:'POST',body:fd});
+    const {url} = await r.json();
+    if(ws && ws.readyState === WebSocket.OPEN){
+      ws.send(JSON.stringify({
+        to: currentChat.user_id, text:'',
+        type:'image', file_data: url
+      }));
+    } else {
+      await fetch(`${API}/api/messages`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          from_id: currentUser.user_id,
+          to_id: currentChat.user_id,
+          text:'', type:'image', file_data: url
+        })
+      });
+      await loadMessages(currentChat.user_id);
+    }
+  }catch(e){ toast('Rasm yuklanmadi', 'error'); }
   e.target.value = '';
 };
 
-// ============ WEBSOCKET ============
+/* ============================================================
+   PHOTO VIEWER
+   ============================================================ */
+function openPhoto(url){
+  document.getElementById('photoViewerImg').src = url;
+  document.getElementById('photoViewer').classList.remove('hidden');
+}
+
+/* ============================================================
+   WEBSOCKET
+   ============================================================ */
 function connectWS(){
   if(!currentUser) return;
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(`${proto}//${location.host}/ws/${currentUser.user_id}`);
-  ws.onmessage = ev=>{
-    const data = JSON.parse(ev.data);
-    if(data.event === 'message'){
-      const m = data.data;
-      // Agar shu chat ochiq bo'lsa - qo'shamiz
-      if(currentChat && (m.from_id === currentChat.user_id || m.to_id === currentChat.user_id)){
-        loadMessages(currentChat.user_id);
-      }
-      // Chatlar ro'yxatini yangilash
-      if(activeView === 'chats') loadChats();
-    }
-  };
-  ws.onclose = ()=> setTimeout(connectWS, 3000);
+  try{
+    ws = new WebSocket(`${proto}//${location.host}/ws/${currentUser.user_id}`);
+    ws.onmessage = ev=>{
+      try{
+        const data = JSON.parse(ev.data);
+        if(data.event === 'message'){
+          const m = data.data;
+          if(currentChat && (m.from_id === currentChat.user_id || m.to_id === currentChat.user_id)){
+            loadMessages(currentChat.user_id);
+          }
+          if(activeView === 'chats') loadChats();
+        }
+      }catch(e){ console.error(e); }
+    };
+    ws.onclose = ()=> setTimeout(connectWS, 3000);
+    ws.onerror = ()=>{};
+  }catch(e){ console.error(e); }
 }
 
-// ============ QIDIRUV ============
+/* ============================================================
+   QIDIRUV
+   ============================================================ */
 document.getElementById('btnSearch').onclick = ()=>{
   document.getElementById('searchModal').classList.remove('hidden');
   document.getElementById('searchInput').value = '';
-  document.getElementById('searchResult').style.display = 'none';
-  setTimeout(()=>document.getElementById('searchInput').focus(), 150);
+  document.getElementById('searchResult').classList.remove('show');
+  setTimeout(()=>document.getElementById('searchInput').focus(), 200);
 };
-function closeSearch(){ document.getElementById('searchModal').classList.add('hidden'); }
-
-document.getElementById('searchInput').addEventListener('input', async e=>{
-  const q = e.target.value.trim();
-  const res = document.getElementById('searchResult');
-  if(q.length < 2){ res.style.display='none'; return; }
-  try{
-    const r = await fetch(`${API}/api/search`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username: q.replace('@','')})
-    });
-    if(!r.ok){ res.style.display='none'; return; }
-    const u = await r.json();
-    res.style.display = 'block';
-    res.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="avatar" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">
-          ${u.photo?`<img src="${u.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(u.full_name||'?').charAt(0)}
-        </div>
-        <div>
-          <div style="font-weight:600">${escapeHtml(u.full_name)}</div>
-          <div style="font-size:12px;color:var(--muted)">@${u.username}</div>
-        </div>
-      </div>`;
-    res.onclick = ()=>{
-      closeSearch();
-      openChat(u);
-    };
-  }catch(e){ res.style.display='none'; }
-});
-
-// ============ BLOKLASH ============
-async function blockUser(){
-  if(!currentChat) return;
-  if(!confirm(`@${currentChat.username} bloklansinmi?`)) return;
-  await fetch(`${API}/api/block`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({user_id: currentUser.user_id, blocked_id: currentChat.user_id})
-  });
-  toast('Bloklandi');
-  closeChat();
+function closeSearch(){
+  document.getElementById('searchModal').classList.add('hidden');
 }
 
-// ============ GALEREYA ============
+let searchTimer = null;
+document.getElementById('searchInput').addEventListener('input', e=>{
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  const res = document.getElementById('searchResult');
+  if(q.length < 2){ res.classList.remove('show'); return; }
+  searchTimer = setTimeout(async()=>{
+    try{
+      const r = await fetch(`${API}/api/search`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username: q.replace('@','')})
+      });
+      if(!r.ok){ res.classList.remove('show'); return; }
+      const u = await r.json();
+      res.classList.add('show');
+      res.innerHTML = `
+        <div class="avatar" style="width:44px;height:44px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;overflow:hidden;flex-shrink:0">
+          ${u.profile_photo ? `<img src="${u.profile_photo}" style="width:100%;height:100%;object-fit:cover">` : (u.full_name||'?').charAt(0).toUpperCase()}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px;margin-bottom:2px">${escapeHtml(u.full_name)}</div>
+          <div style="font-size:12px;color:var(--muted)">@${escapeHtml(u.username)}</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      `;
+      res.onclick = ()=>{
+        closeSearch();
+        openChat({
+          user_id: u.user_id,
+          full_name: u.full_name,
+          username: u.username,
+          photo: u.profile_photo
+        });
+      };
+    }catch(e){ res.classList.remove('show'); }
+  }, 300);
+});
+
+/* ============================================================
+   BLOKLASH
+   ============================================================ */
+async function blockUser(){
+  if(!currentChat) return;
+  if(!confirm(`@${currentChat.username || currentChat.full_name} bloklansinmi?`)) return;
+  try{
+    await fetch(`${API}/api/block`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        user_id: currentUser.user_id,
+        blocked_id: currentChat.user_id
+      })
+    });
+    toast('Bloklandi', 'success');
+    closeChat();
+  }catch(e){ toast('Xato', 'error'); }
+}
+
+/* ============================================================
+   GALEREYA
+   ============================================================ */
 async function loadGallery(){
   if(!currentUser) return;
-  const r = await fetch(`${API}/api/gallery/${currentUser.user_id}`);
-  if(!r.ok) return;
-  const photos = await r.json();
-  const grid = document.getElementById('galleryGrid');
-  grid.innerHTML = photos.map(p=>`
-    <div class="gitem">
-      <img src="${p.photo}">
-      <button class="del" onclick="delPhoto(${p.id})">✕</button>
-    </div>
-  `).join('') + `<button class="add-photo" onclick="document.getElementById('galleryInput').click()">+</button>`;
+  try{
+    const r = await fetch(`${API}/api/gallery/${currentUser.user_id}`);
+    if(!r.ok) return;
+    const photos = await r.json();
+    const grid = document.getElementById('galleryGrid');
+    grid.innerHTML = photos.map(p => `
+      <div class="gitem">
+        <img src="${p.photo}" alt="" onclick="openPhoto('${p.photo}')">
+        <button class="del" onclick="event.stopPropagation();delPhoto(${p.id})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    `).join('') + `
+      <button class="add-photo" onclick="document.getElementById('galleryInput').click()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>`;
+  }catch(e){ console.error(e); }
 }
 
 document.getElementById('galleryInput').onchange = async e=>{
   const file = e.target.files[0];
   if(!file) return;
-  const fd = new FormData();
-  fd.append('file', file);
-  const r = await fetch(`${API}/api/upload`,{method:'POST',body:fd});
-  const {url} = await r.json();
-  const fd2 = new FormData();
-  fd2.append('user_id', currentUser.user_id);
-  fd2.append('photo', url);
-  await fetch(`${API}/api/gallery/add`,{method:'POST',body:fd2});
-  loadGallery();
+  try{
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch(`${API}/api/upload`,{method:'POST',body:fd});
+    const {url} = await r.json();
+    const fd2 = new FormData();
+    fd2.append('user_id', currentUser.user_id);
+    fd2.append('photo', url);
+    await fetch(`${API}/api/gallery/add`,{method:'POST',body:fd2});
+    loadGallery();
+    toast('Rasm qo\'shildi', 'success');
+  }catch(e){ toast('Xato', 'error'); }
   e.target.value = '';
 };
 
 async function delPhoto(id){
   if(!confirm("O'chirilsinmi?")) return;
-  await fetch(`${API}/api/gallery/${id}?user_id=${currentUser.user_id}`,{method:'DELETE'});
-  loadGallery();
+  try{
+    await fetch(`${API}/api/gallery/${id}?user_id=${currentUser.user_id}`,{method:'DELETE'});
+    loadGallery();
+    toast("O'chirildi", 'success');
+  }catch(e){ toast('Xato', 'error'); }
 }
 
-// ============ PROFIL ============
+/* ============================================================
+   PROFIL
+   ============================================================ */
 document.getElementById('profPhotoInput').onchange = async e=>{
   const file = e.target.files[0];
   if(!file) return;
-  const fd = new FormData();
-  fd.append('file', file);
-  const r = await fetch(`${API}/api/upload`,{method:'POST',body:fd});
-  const {url} = await r.json();
-  await fetch(`${API}/api/profile/update`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({user_id: currentUser.user_id, photo: url})
-  });
-  currentUser.photo = url;
-  fillProfile(); fillMyInfo();
-  toast('Rasm saqlandi');
+  try{
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch(`${API}/api/upload`,{method:'POST',body:fd});
+    const {url} = await r.json();
+    await fetch(`${API}/api/profile/update`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({user_id: currentUser.user_id, photo: url})
+    });
+    currentUser.photo = url;
+    fillProfile(); fillMyInfo();
+    toast('Rasm saqlandi', 'success');
+  }catch(e){ toast('Xato', 'error'); }
   e.target.value = '';
 };
 
@@ -917,6 +1356,7 @@ async function saveProfile(){
   const name = document.getElementById('editName').value.trim();
   const oldP = document.getElementById('oldPwd').value.trim();
   const newP = document.getElementById('newPwd').value.trim();
+  let changed = false;
 
   if(name && name !== currentUser.full_name){
     await fetch(`${API}/api/profile/update`,{
@@ -925,46 +1365,66 @@ async function saveProfile(){
       body: JSON.stringify({user_id: currentUser.user_id, full_name: name})
     });
     currentUser.full_name = name;
+    changed = true;
   }
+
   if(oldP || newP){
-    if(!oldP || !newP){ toast('Ikkala parolni kiriting'); return; }
+    if(!oldP || !newP){
+      toast('Ikkala parolni kiriting', 'error');
+      return;
+    }
     const r = await fetch(`${API}/api/profile/password`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({user_id: currentUser.user_id, old_password: oldP, new_password: newP})
+      body: JSON.stringify({
+        user_id: currentUser.user_id,
+        old_password: oldP,
+        new_password: newP
+      })
     });
-    if(!r.ok){ toast('Eski parol xato yoki yangi parol 5 xonali emas'); return; }
+    if(!r.ok){
+      toast('Eski parol xato yoki yangi 5 xonali emas', 'error');
+      return;
+    }
     localStorage.setItem('pwd', newP);
-    toast('Parol yangilandi');
+    document.getElementById('oldPwd').value = '';
+    document.getElementById('newPwd').value = '';
+    changed = true;
   }
+
   fillProfile(); fillMyInfo();
-  toast('Saqlandi');
+  toast(changed ? 'Saqlandi' : 'O\'zgarish yo\'q', changed ? 'success' : 'info');
 }
 
 function logout(){
   localStorage.removeItem('uid');
   localStorage.removeItem('pwd');
   currentUser = null;
-  if(ws) ws.close();
+  currentChat = null;
+  if(ws){ try{ ws.close(); }catch(e){} ws = null; }
   document.getElementById('mainApp').classList.add('hidden');
+  document.getElementById('chatView').classList.add('hidden');
   document.getElementById('calcScreen').classList.remove('hidden');
   calcExpr = ''; updateCalc();
+  toast('Chiqdingiz', 'info');
 }
 
-// ============ BLOKLANGAN ============
+/* ============================================================
+   BLOKLANGAN
+   ============================================================ */
 function showBlocked(){
   document.getElementById('blockedScreen').classList.remove('hidden');
 }
 
-// ============ PANIC MODE - 2 marta tap ============
-let tapCount = 0, tapTimer = null;
+/* ============================================================
+   PANIC MODE — 2 marta tap
+   ============================================================ */
 document.addEventListener('touchstart', e=>{
-  // Input yoki button ichida bo'lsa, hisoblamaymiz
-  const tag = e.target.tagName.toLowerCase();
-  if(['input','textarea'].includes(tag)) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if(['input','textarea','select'].includes(tag)) return;
   tapCount++;
   if(tapCount === 1){
-    tapTimer = setTimeout(()=>{ tapCount = 0; }, 320);
+    tapTimer = setTimeout(()=>{ tapCount = 0; }, 350);
   }
   if(tapCount >= 2){
     clearTimeout(tapTimer);
@@ -973,38 +1433,41 @@ document.addEventListener('touchstart', e=>{
   }
 }, {passive:true});
 
-// Mouse uchun ham (desktop test)
 document.addEventListener('dblclick', e=>{
-  const tag = e.target.tagName.toLowerCase();
-  if(['input','textarea'].includes(tag)) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if(['input','textarea','select'].includes(tag)) return;
   panicMode();
 });
 
 function panicMode(){
-  // Hamma modallarni yopish
   document.getElementById('pwdModal').classList.add('hidden');
   document.getElementById('searchModal').classList.add('hidden');
   document.getElementById('chatView').classList.add('hidden');
   document.getElementById('blockedScreen').classList.add('hidden');
-  // Asosiy appni yashirish
+  document.getElementById('photoViewer').classList.add('hidden');
   document.getElementById('mainApp').classList.add('hidden');
-  // Kalkulyatorni ko'rsatish
   document.getElementById('calcScreen').classList.remove('hidden');
-  // Chatni yopish
   currentChat = null;
-  // Kalkulyatorni tozalash
   calcExpr = '';
   updateCalc();
 }
 
-// ============ TELEGRAM WEBAPP ============
+/* ============================================================
+   TELEGRAM WEBAPP
+   ============================================================ */
 if(tg){
-  tg.ready();
-  tg.expand();
-  tg.setHeaderColor('#0f0f14');
+  try{
+    tg.ready();
+    tg.expand();
+    if(tg.setHeaderColor) tg.setHeaderColor('#0b0b10');
+    if(tg.setBackgroundColor) tg.setBackgroundColor('#0b0b10');
+    if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+  }catch(e){}
 }
 
-// ============ AVTOMATIK KIRISH ============
+/* ============================================================
+   AUTO LOGIN
+   ============================================================ */
 (async function autoLogin(){
   const uid = localStorage.getItem('uid');
   const pwd = localStorage.getItem('pwd');
@@ -1019,6 +1482,8 @@ if(tg){
       currentUser = await r.json();
       showMainApp();
     } else {
+      localStorage.removeItem('uid');
+      localStorage.removeItem('pwd');
       updateCalc();
     }
   }catch(e){ updateCalc(); }
